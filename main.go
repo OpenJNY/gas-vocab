@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -21,7 +20,12 @@ type Data struct {
 
 func main() {
 	if len(os.Args) < 2 || strings.HasPrefix(os.Args[1], "-") {
-		fmt.Printf(`Usage: %s <word> [-m <meaning>] [-e <example>]`, filepath.Base(os.Args[0]))
+		fmt.Printf(`Usage: vocab <word> [-m <meaning>] [-e <example>]
+		
+# alias
+vocab <word> <meaning>
+vocab <word> <meaning> <example>
+`)
 		os.Exit(1)
 	}
 
@@ -39,6 +43,16 @@ func main() {
 		Meaning: meaning,
 		Example: example,
 	}
+
+	// vocab <word> <meaning>
+	if len(os.Args) >= 3 {
+		data.Meaning = os.Args[2]
+	}
+	// vocab <word> <meaning> <example>
+	if len(os.Args) >= 4 {
+		data.Meaning = os.Args[3]
+	}
+
 	marshalData, _ := json.Marshal(data)
 
 	res, err := http.Post(
