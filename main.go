@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
-	"strings"
+	"path/filepath"
 )
 
 var URL = os.Getenv("GAS_VOCAB_URL")
@@ -18,42 +20,45 @@ type Data struct {
 	Example string `json:"example"`
 }
 
-func main() {
-	if len(os.Args) < 2 || strings.HasPrefix(os.Args[1], "-") {
-		fmt.Printf(`Usage: vocab <word> [-m <meaning>] [-e <example>]
-		
-# alias
-vocab <word> <meaning>
-vocab <word> <meaning> <example>
-`)
-		os.Exit(1)
+func flagArgOrDefault(index int, fallback string) string {
+	if index < flag.NArg() {
+		return flag.Arg(index)
 	}
+	return fallback
+}
 
+func main() {
 	var (
 		meaning string
 		example string
 	)
 
+	flag.Usage = func() {
+		o := flag.CommandLine.Output()
+		fmt.Fprintf(o, "Usage: %s [options] <word> [<meaning> [<example>]]\n", filepath.Base(os.Args[0]))
+		fmt.Fprintf(o, "\n")
+		fmt.Fprintf(o, "This is a client to send a POST request to the 'Vocab' GAS application.\n")
+		fmt.Fprintf(o, "If you specify meaning/example as arguments, they prefer over ones specified as options.\n")
+		fmt.Fprintf(o, "[options]\n")
+		flag.PrintDefaults()
+	}
 	flag.StringVar(&meaning, "m", "", "meaning of the word")
 	flag.StringVar(&example, "e", "", "example of the word")
 	flag.Parse()
 
-	data := Data{
-		Word:    os.Args[1],
-		Meaning: meaning,
-		Example: example,
+	if flag.NArg() == 0 {
+		flag.Usage()
+		os.Exit(1)
 	}
 
-	// vocab <word> <meaning>
-	if len(os.Args) >= 3 {
-		data.Meaning = os.Args[2]
-	}
-	// vocab <word> <meaning> <example>
-	if len(os.Args) >= 4 {
-		data.Meaning = os.Args[3]
+	data := Data{
+		Word:    flag.Arg(0),
+		Meaning: flagArgOrDefault(1, meaning),
+		Example: flagArgOrDefault(2, example),
 	}
 
 	marshalData, _ := json.Marshal(data)
+	fmt.Printf("[!] %v\n", string(marshalData))
 
 	res, err := http.Post(
 		URL,
@@ -67,10 +72,9 @@ vocab <word> <meaning> <example>
 	}
 
 	defer res.Body.Close()
-	// body, err := ioutil.ReadAll(res.Body)
-	// if err != nil {
-	// 	log.Fatalf("[!] %s\n", err)
-	// }
-	// fmt.Fprintln(os.Stdout, string(body))
-	fmt.Printf("registerd: %v\n", string(marshalData))
+	resBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatalf("[!] %s\n", err)
+	}
+	fmt.Fprintln(os.Stdout, string(resBody))
 }
