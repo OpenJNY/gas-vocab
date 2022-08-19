@@ -15,7 +15,7 @@ function doPost(e) {
   const result = appendDataToSpreadSheet(data, sheet);
 
   return ContentService
-    .createTextOutput(result)
+    .createTextOutput(JSON.stringify(result))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
