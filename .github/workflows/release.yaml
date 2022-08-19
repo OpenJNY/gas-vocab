@@ -7,7 +7,7 @@ jobs:
     name: release go binary
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     strategy:
       # fail-fast: true
       matrix:
