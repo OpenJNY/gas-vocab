@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -27,6 +29,31 @@ func flagArgOrDefault(index int, fallback string) string {
 	return fallback
 }
 
+func inputDataFromConsole() (*Data, error) {
+	scanner := bufio.NewScanner(os.Stdin)
+
+	fmt.Print("Enter word: ")
+	scanner.Scan()
+	word := scanner.Text()
+	if len(word) == 0 {
+		return nil, errors.New("word must be specified.")
+	}
+
+	fmt.Print("Enter meaning: ")
+	scanner.Scan()
+	meaning := scanner.Text()
+
+	fmt.Print("Enter example: ")
+	scanner.Scan()
+	example := scanner.Text()
+
+	return &Data{
+		Word:    word,
+		Meaning: meaning,
+		Example: example,
+	}, nil
+}
+
 func main() {
 	var (
 		meaning string
@@ -46,15 +73,16 @@ func main() {
 	flag.StringVar(&example, "e", "", "example of the word")
 	flag.Parse()
 
-	if flag.NArg() == 0 {
-		flag.Usage()
-		os.Exit(1)
-	}
+	var data *Data
 
-	data := Data{
-		Word:    flag.Arg(0),
-		Meaning: flagArgOrDefault(1, meaning),
-		Example: flagArgOrDefault(2, example),
+	if flag.NArg() == 0 {
+		data, _ = inputDataFromConsole()
+	} else {
+		data = &Data{
+			Word:    flag.Arg(0),
+			Meaning: flagArgOrDefault(1, meaning),
+			Example: flagArgOrDefault(2, example),
+		}
 	}
 
 	marshalData, _ := json.Marshal(data)
